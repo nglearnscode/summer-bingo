@@ -257,33 +257,35 @@ body {
 
 <div id="root">
   <svg class="scrapbook-bg" viewBox="0 0 1080 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true" id="scrapbook-svg"></svg>
-  <div class="loading-shell"><p class="loading-text">Unrolling the field log…</p></div>
+  <div class="loading-shell"><p class="loading-text">Unrolling the field logâ¦</p></div>
 </div>
 
 <!-- Firebase SDK (CDN, no build step needed) -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, setDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {
-  getStorage, ref, uploadString, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+try {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const { getStorage, ref, uploadString, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCnxY_ub-sk5FgX8oVEu7LVzzkjVnLzxIc",
-  authDomain: "llc-summer-bingo.firebaseapp.com",
-  projectId: "llc-summer-bingo",
-  storageBucket: "llc-summer-bingo.firebasestorage.app",
-  messagingSenderId: "486061081032",
-  appId: "1:486061081032:web:a079facf1b1299d89f80fd",
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCnxY_ub-sk5FgX8oVEu7LVzzkjVnLzxIc",
+    authDomain: "llc-summer-bingo.firebaseapp.com",
+    projectId: "llc-summer-bingo",
+    storageBucket: "llc-summer-bingo.firebasestorage.app",
+    messagingSenderId: "486061081032",
+    appId: "1:486061081032:web:a079facf1b1299d89f80fd",
+  };
 
-const fbApp = initializeApp(firebaseConfig);
-const db = getFirestore(fbApp);
-const storage = getStorage(fbApp);
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const storage = getStorage(fbApp);
 
-window.__firebase = { db, storage, doc, getDoc, setDoc, ref, uploadString, getDownloadURL };
+  window.__firebase = { db, storage, doc, getDoc, setDoc, ref, uploadString, getDownloadURL };
+  window.__firebaseReady = true;
+} catch (e) {
+  console.error("Firebase SDK failed to initialize:", e);
+  window.__firebaseInitError = e.message || String(e);
+}
 </script>
 
 <!-- Main app logic -->
