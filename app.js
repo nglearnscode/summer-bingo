@@ -1076,9 +1076,46 @@ function wirePinManageModal() {
 }
 
 // ===================== BOOT =====================
-debugLog("App script started, calling refreshAll()â¦");
-refreshAll();
-setInterval(() => { refreshAll(true); }, 60 * 1000);
+if (window.__firebaseInitError) {
+  // The Firebase SDK itself failed to load/initialize (network issue, blocked
+  // CDN, bad config) â this happens before any of our own app logic can run,
+  // so show a clear message immediately instead of hanging on the spinner.
+  root.innerHTML = svgBg() + `
+    <div class="loading-shell">
+      <div class="error-box">
+        <p class="error-title">Couldn't load Firebase</p>
+        <p class="error-sub">The Firebase connection itself failed to start up. This usually means a network/CDN issue, not a problem with your data.</p>
+        <p class="entry-meta" style="margin-top:10px;word-break:break-word">${escapeHtml(window.__firebaseInitError)}</p>
+      </div>
+    </div>`;
+} else if (!window.__firebase) {
+  // Extremely unlikely, but covers the case where the SDK script hasn't
+  // finished loading yet at all (e.g. very slow connection) rather than
+  // having errored â give it a moment before treating it as a real failure.
+  let waited = 0;
+  const waitForFirebase = setInterval(() => {
+    waited += 200;
+    if (window.__firebase) {
+      clearInterval(waitForFirebase);
+      debugLog("App script started, calling refreshAll()â¦");
+      refreshAll();
+      setInterval(() => { refreshAll(true); }, 60 * 1000);
+    } else if (waited >= 8000) {
+      clearInterval(waitForFirebase);
+      root.innerHTML = svgBg() + `
+        <div class="loading-shell">
+          <div class="error-box">
+            <p class="error-title">Couldn't load Firebase</p>
+            <p class="error-sub">The Firebase SDK never finished loading. Check your internet connection and try reloading the page.</p>
+          </div>
+        </div>`;
+    }
+  }, 200);
+} else {
+  debugLog("App script started, calling refreshAll()â¦");
+  refreshAll();
+  setInterval(() => { refreshAll(true); }, 60 * 1000);
+}
 
 // Absolute failsafe: no matter what goes wrong inside refreshAll (a bug, an
 // unexpected hang, a promise that never resolves or rejects), never let the
