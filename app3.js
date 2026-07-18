@@ -1,4 +1,4 @@
-// ===================== DATA =====================
+/ ===================== DATA =====================
 const TEAM = [
   "Elias", "Marcus", "Demi", "Sam", "Ng'ang'a",
   "Aline", "Lucy", "Zahra", "Iris", "Aizha",
@@ -34,7 +34,7 @@ const PROMPTS = [
 
 const FREE_INDEX = 12;
 const LOCK_HOURS = 72;
-const REACTIONS = ["🔥", "❤️", "😂", "🤩", "😭", "👏"];
+const REACTIONS = ["ð¥", "â¤ï¸", "ð", "ð¤©", "ð­", "ð"];
 const GRID_SIZE = 5;
 
 const LINES = (() => {
@@ -51,7 +51,7 @@ function slugify(str) {
   return String(str)
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/['’]/g, "")
+    .replace(/['â]/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .toLowerCase();
@@ -129,7 +129,7 @@ function escapeHtml(str) {
 // ===================== DEBUG LOG =====================
 window.__fieldLogDebug = window.__fieldLogDebug || [];
 function debugLog(entry) {
-  const line = `${new Date().toLocaleTimeString()} — ${entry}`;
+  const line = `${new Date().toLocaleTimeString()} â ${entry}`;
   window.__fieldLogDebug = [...window.__fieldLogDebug, line].slice(-40);
   const el = document.getElementById("debug-panel-body");
   if (el) renderDebugPanel();
@@ -138,7 +138,7 @@ function debugLog(entry) {
 // ===================== FIREBASE STORAGE LAYER =====================
 // Firestore holds the board's structured data (cells, pin, timestamps).
 // Firebase Storage holds the actual photo files (referenced by URL in Firestore).
-// This avoids the 5MB-per-document ceiling we hit with Claude's storage —
+// This avoids the 5MB-per-document ceiling we hit with Claude's storage â
 // Firestore documents stay small (just text/URLs), photos live in dedicated
 // object storage designed for exactly this.
 
@@ -157,11 +157,11 @@ async function loadBoardData(name, attempt = 1) {
   } catch (e) {
     const isTransient = /unavailable|timeout|network|internal/i.test(e.message || "");
     if (isTransient && attempt < MAX_ATTEMPTS) {
-      debugLog(`loadBoardData(${name}) ⚠️ attempt ${attempt} failed (${e.message}), retrying…`);
+      debugLog(`loadBoardData(${name}) â ï¸ attempt ${attempt} failed (${e.message}), retryingâ¦`);
       await sleep(400 * attempt);
       return loadBoardData(name, attempt + 1);
     }
-    debugLog(`loadBoardData(${name}) ❌ ${e.message || e}`);
+    debugLog(`loadBoardData(${name}) â ${e.message || e}`);
     return null;
   }
 }
@@ -171,17 +171,17 @@ async function saveBoardData(name, data, attempt = 1) {
   const { setDoc } = window.__firebase;
   try {
     await setDoc(boardDocRef(name), data);
-    debugLog(`saveBoardData(${name}) → ✅ ok`);
+    debugLog(`saveBoardData(${name}) â â ok`);
     return true;
   } catch (e) {
     const isTransient = /unavailable|timeout|network|internal|resource-exhausted/i.test(e.message || "");
     if (isTransient && attempt < MAX_ATTEMPTS) {
       const waitMs = /resource-exhausted/i.test(e.message || "") ? 1500 * attempt : 400 * attempt;
-      debugLog(`saveBoardData(${name}) ⚠️ attempt ${attempt} failed (${e.message}), retrying in ${waitMs}ms…`);
+      debugLog(`saveBoardData(${name}) â ï¸ attempt ${attempt} failed (${e.message}), retrying in ${waitMs}msâ¦`);
       await sleep(waitMs);
       return saveBoardData(name, data, attempt + 1);
     }
-    debugLog(`saveBoardData(${name}) ❌ ${e.message || e}`);
+    debugLog(`saveBoardData(${name}) â ${e.message || e}`);
     throw e;
   }
 }
@@ -189,15 +189,15 @@ async function saveBoardData(name, data, attempt = 1) {
 async function uploadPhoto(name, index, dataUrl) {
   const { storage, ref, uploadString, getDownloadURL } = window.__firebase;
   const path = `photos/${slugify(name)}/cell-${index}-${Date.now()}.jpg`;
-  debugLog(`uploadPhoto(${name}, ${index}) → attempting path: ${path}`);
+  debugLog(`uploadPhoto(${name}, ${index}) â attempting path: ${path}`);
   try {
     const photoRef = ref(storage, path);
     await uploadString(photoRef, dataUrl, "data_url");
     const url = await getDownloadURL(photoRef);
-    debugLog(`uploadPhoto(${name}, ${index}) → ✅ ok`);
+    debugLog(`uploadPhoto(${name}, ${index}) â â ok`);
     return url;
   } catch (e) {
-    debugLog(`uploadPhoto(${name}, ${index}) ❌ code=${e.code || "?"} message=${e.message || e}`);
+    debugLog(`uploadPhoto(${name}, ${index}) â code=${e.code || "?"} message=${e.message || e}`);
     throw e;
   }
 }
@@ -218,7 +218,10 @@ function emptyBoard() {
 
 async function loadFullBoard(name) {
   const data = await loadBoardData(name);
-  if (!data) return emptyBoard();
+  if (!data) {
+    debugLog(`loadFullBoard(${name}) â no existing data, using empty board`);
+    return emptyBoard();
+  }
   return {
     pin: data.pin || null,
     lastUploadTimestamp: data.lastUploadTimestamp || null,
@@ -265,7 +268,7 @@ async function refreshAll(silent = false) {
     const freshBoards = Object.fromEntries(entries);
 
     // If a modal is open (upload in progress, entry view, PIN prompt), update the
-    // underlying data silently without a full re-render — a periodic background
+    // underlying data silently without a full re-render â a periodic background
     // refresh shouldn't interrupt someone mid-upload or mid-comment. The next
     // natural render (e.g. after they close the modal) will pick up fresh data.
     const hasOpenModal = state.modalIndex !== null || state.entryModal || state.pinModal || state.pinManageOpen;
@@ -344,8 +347,8 @@ async function handleSubmit(dataUrl) {
     const rawMessage = e.message || "";
     const codePrefix = e.code ? `[${e.code}] ` : "";
     const friendly = /resource-exhausted|rate/i.test(rawMessage)
-      ? "Things are a little busy right now — please wait about 30 seconds and try again."
-      : (codePrefix + (rawMessage || "Couldn't save this photo — try a smaller/different photo."));
+      ? "Things are a little busy right now â please wait about 30 seconds and try again."
+      : (codePrefix + (rawMessage || "Couldn't save this photo â try a smaller/different photo."));
     setState({ busy: false, uploadError: friendly });
   }
 }
@@ -365,7 +368,7 @@ function handleDeleteFromEntry() {
       setState({ entryModal: null });
     } catch (e) {
       console.error(e);
-      setState({ uploadError: e.message || "Couldn't delete this entry — try again." });
+      setState({ uploadError: e.message || "Couldn't delete this entry â try again." });
     }
   });
 }
@@ -454,7 +457,7 @@ async function handleUpdatePin(newPin) {
     setState({ unlockedBoards: { ...state.unlockedBoards, [state.currentUser]: true }, pinManageOpen: false, pinError: "" });
   } catch (e) {
     console.error(e);
-    setState({ pinError: e.message || "Couldn't update the PIN — try again." });
+    setState({ pinError: e.message || "Couldn't update the PIN â try again." });
   }
 }
 
@@ -468,7 +471,7 @@ async function handleRemovePin() {
     setState({ pinManageOpen: false, pinError: "" });
   } catch (e) {
     console.error(e);
-    setState({ pinError: e.message || "Couldn't remove the PIN — try again." });
+    setState({ pinError: e.message || "Couldn't remove the PIN â try again." });
   }
 }
 
@@ -485,7 +488,7 @@ function handlePinConfirm(value) {
     state.pinModal.onSuccess();
     setState({ pinModal: null, pinError: "" });
   } else {
-    setState({ pinError: "That PIN doesn't match — try again." });
+    setState({ pinError: "That PIN doesn't match â try again." });
   }
 }
 
@@ -510,19 +513,25 @@ const root = document.getElementById("root");
 
 function render() {
   if (state.loading) {
-    root.innerHTML = svgBg() + `<div class="loading-shell"><p class="loading-text">Unrolling the field log…</p></div>`;
+    root.innerHTML = svgBg() + `<div class="loading-shell"><p class="loading-text">Unrolling the field logâ¦</p></div>`;
     return;
   }
   if (state.storageError) {
+    const lastLogs = (window.__fieldLogDebug || []).slice(-8);
     root.innerHTML = svgBg() + `
       <div class="loading-shell">
         <div class="error-box">
           <p class="error-title">Couldn't connect to storage</p>
           <p class="error-sub">Something went wrong loading the boards. Check your connection and try again.</p>
           <button class="btn-primary" style="margin-top:16px" id="retry-btn" type="button">Try again</button>
+          ${lastLogs.length > 0 ? `
+            <div class="debug-panel-inline" style="margin-top:16px;text-align:left">
+              <div class="debug-panel-header"><span>Recent activity (for diagnosis)</span></div>
+              <div class="debug-panel-body">${lastLogs.map((l) => `<div class="debug-line">${escapeHtml(l)}</div>`).join("")}</div>
+            </div>` : '<p class="entry-meta" style="margin-top:12px">No storage activity was logged before this failed â the connection itself may not be reaching Firebase at all.</p>'}
         </div>
       </div>`;
-    document.getElementById("retry-btn").onclick = () => { setState({ loading: true }); refreshAll(); };
+    document.getElementById("retry-btn").onclick = () => { setState({ loading: true, storageError: false }); refreshAll(); };
     return;
   }
   if (!state.currentUser) {
@@ -537,8 +546,8 @@ function render() {
   if (state.view !== "home") {
     html += `
       <div class="nav-bar">
-        <button class="nav-btn" id="back-btn" type="button"><span class="nav-icon">←</span> Back</button>
-        <button class="nav-btn" id="home-btn" type="button"><span class="nav-icon">⌂</span> Home</button>
+        <button class="nav-btn" id="back-btn" type="button"><span class="nav-icon">â</span> Back</button>
+        <button class="nav-btn" id="home-btn" type="button"><span class="nav-icon">â</span> Home</button>
       </div>`;
   }
 
@@ -596,14 +605,14 @@ function renderGate() {
   return `
     <div class="homepage">
       <header class="masthead">
-        <p class="masthead-eyebrow">UTM · LLC Program Facilitators</p>
+        <p class="masthead-eyebrow">UTM Â· LLC Program Facilitators</p>
         <h1 class="masthead-title">the summer I turned into an LLC PF</h1>
         <p class="masthead-sub">First, tell us who you are.</p>
       </header>
       <div class="who-bar">
         <label for="identity-select" class="who-label">I am</label>
         <select id="identity-select" class="who-select">
-          <option value="">— choose your name —</option>
+          <option value="">â choose your name â</option>
           ${TEAM.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("")}
         </select>
       </div>
@@ -629,7 +638,7 @@ function renderDebugPanelHtml() {
     <div class="debug-panel-inline">
       <div class="debug-panel-header">
         <span>Storage debug log</span>
-        <button id="debug-close" type="button">✕</button>
+        <button id="debug-close" type="button">â</button>
       </div>
       <div class="debug-panel-body" id="debug-panel-body">
         ${lines.length === 0 ? "<p>No storage calls logged yet. Try uploading a photo.</p>" : lines.map((l) => `<div class="debug-line">${escapeHtml(l)}</div>`).join("")}
@@ -649,16 +658,16 @@ function renderHomepage() {
   return `
     <div class="homepage">
       <header class="masthead">
-        <p class="masthead-eyebrow">UTM · LLC Program Facilitators</p>
+        <p class="masthead-eyebrow">UTM Â· LLC Program Facilitators</p>
         <h1 class="masthead-title">the summer I turned into an LLC PF</h1>
         <p class="masthead-sub">One entry every ${LOCK_HOURS / 24} days. First to complete a line wins.</p>
       </header>
       <div class="home-actions">
-        <button class="home-btn home-btn-primary" id="go-my-board" type="button">📋 My board</button>
-        <button class="home-btn" id="go-team-boards" type="button">👀 Team boards</button>
-        <button class="home-btn" id="go-leaderboard" type="button">🏆 Leaderboard</button>
+        <button class="home-btn home-btn-primary" id="go-my-board" type="button">ð My board</button>
+        <button class="home-btn" id="go-team-boards" type="button">ð Team boards</button>
+        <button class="home-btn" id="go-leaderboard" type="button">ð Leaderboard</button>
       </div>
-      ${state.currentUser ? `<p class="home-current-user">Signed in as <strong>${escapeHtml(state.currentUser)}</strong> · <button class="link-btn" id="switch-identity" type="button">not you?</button></p>` : ""}
+      ${state.currentUser ? `<p class="home-current-user">Signed in as <strong>${escapeHtml(state.currentUser)}</strong> Â· <button class="link-btn" id="switch-identity" type="button">not you?</button></p>` : ""}
     </div>`;
 }
 
@@ -681,8 +690,8 @@ function renderLeaderboard() {
         ${rows.map((row, i) => `
           <button class="lb-row ${row.name === state.currentUser ? "lb-row-active" : ""}" type="button" data-select-board="${escapeHtml(row.name)}">
             <span class="lb-rank">${i + 1}</span>
-            <span class="lb-name">${escapeHtml(row.name)} ${row.pin ? '<span class="lock-icon-sm" title="PIN protected">🔒</span>' : ""}</span>
-            <span class="lb-stat">${row.progress.isBingo ? '<span class="lb-bingo">BINGO! 🎉</span>' : `<span class="lb-line">${row.progress.remaining} to a line</span>`}</span>
+            <span class="lb-name">${escapeHtml(row.name)} ${row.pin ? '<span class="lock-icon-sm" title="PIN protected">ð</span>' : ""}</span>
+            <span class="lb-stat">${row.progress.isBingo ? '<span class="lb-bingo">BINGO! ð</span>' : `<span class="lb-line">${row.progress.remaining} to a line</span>`}</span>
             <span class="lb-count">${row.count}/${PROMPTS.length}</span>
             <span class="lb-last">${formatRelativeTime(row.lastTs)}</span>
           </button>`).join("")}
@@ -701,7 +710,7 @@ function renderTeamGrid() {
           const count = board ? board.cells.filter((c) => c.done).length : 0;
           return `
             <button class="team-card ${name === state.currentUser ? "team-card-active" : ""}" type="button" data-select-board="${escapeHtml(name)}">
-              <span class="team-card-name">${escapeHtml(name)} ${board?.pin ? '<span class="lock-icon-sm" title="PIN protected">🔒</span>' : ""} ${name === state.currentUser ? '<span class="you-tag">you</span>' : ""}</span>
+              <span class="team-card-name">${escapeHtml(name)} ${board?.pin ? '<span class="lock-icon-sm" title="PIN protected">ð</span>' : ""} ${name === state.currentUser ? '<span class="you-tag">you</span>' : ""}</span>
               <span class="team-card-count">${count}/${PROMPTS.length}</span>
               <div class="mini-track"><div class="mini-fill" style="width:${(count / PROMPTS.length) * 100}%"></div></div>
             </button>`;
@@ -719,7 +728,7 @@ function renderBoardView() {
   let html = `
     <section class="my-board-section">
       <div class="board-header">
-        <h2 class="board-name">${own ? "My log" : `${escapeHtml(state.viewingUser)}'s log`} ${db.pin ? '<span class="lock-icon" title="PIN protected">🔒</span>' : ""}</h2>
+        <h2 class="board-name">${own ? "My log" : `${escapeHtml(state.viewingUser)}'s log`} ${db.pin ? '<span class="lock-icon" title="PIN protected">ð</span>' : ""}</h2>
         <div class="progress-wrap">
           <div class="progress-track"><div class="progress-fill" style="width:${(db.cells.filter((c) => c.done).length / PROMPTS.length) * 100}%"></div></div>
           <span class="progress-label">${db.cells.filter((c) => c.done).length}/${PROMPTS.length} entries logged</span>
@@ -731,10 +740,10 @@ function renderBoardView() {
   }
 
   if (own && locked) {
-    html += `<p class="lock-note">🔒 Your board is locked — next entry unlocks in ${formatRemaining(lockRemaining())}. If you deleted a photo, the square stays empty until the lock lifts.</p>`;
+    html += `<p class="lock-note">ð Your board is locked â next entry unlocks in ${formatRemaining(lockRemaining())}. If you deleted a photo, the square stays empty until the lock lifts.</p>`;
   }
   if (!own) {
-    html += `<p class="hint-text" style="margin-top:0;margin-bottom:12px">You're viewing ${escapeHtml(state.viewingUser)}'s board — you can react, but only ${escapeHtml(state.viewingUser)} can edit it.</p>`;
+    html += `<p class="hint-text" style="margin-top:0;margin-bottom:12px">You're viewing ${escapeHtml(state.viewingUser)}'s board â you can react, but only ${escapeHtml(state.viewingUser)} can edit it.</p>`;
   }
 
   html += `<div class="grid">`;
@@ -749,8 +758,8 @@ function renderBoardView() {
       <button class="cell ${cell.done ? "cell-done" : ""} ${isFree ? "cell-free" : ""} ${clickable ? "cell-clickable" : ""} ${isLockedEmpty ? "cell-locked" : ""}"
         type="button" data-cell-index="${i}" data-can-open="${canOpen}" data-clickable="${clickable}" ${isFree ? "disabled" : ""}>
         ${cell.done && cell.photo ? `<img src="${cell.photo}" alt="${escapeHtml(prompt)}" class="cell-photo"/>` : ""}
-        ${isFree ? '<div class="free-mark">★<br/>FREE</div>' : ""}
-        ${isLockedEmpty ? '<div class="lock-mark">🔒</div>' : ""}
+        ${isFree ? '<div class="free-mark">â<br/>FREE</div>' : ""}
+        ${isLockedEmpty ? '<div class="lock-mark">ð</div>' : ""}
         <span class="cell-prompt">${isFree ? "Free space" : escapeHtml(prompt)}</span>
         ${cell.done && !isFree ? renderStamp(state.rotations[i]) : ""}
       </button>`;
@@ -784,7 +793,7 @@ function renderUploadModal() {
         ${state.uploadError ? `<p class="modal-error">${escapeHtml(state.uploadError)}</p>` : ""}
         <div class="modal-actions">
           <button class="btn-ghost" id="upload-cancel" type="button">Cancel</button>
-          <button class="btn-primary" id="upload-submit" type="button" disabled>${state.busy ? "Logging…" : "Log entry"}</button>
+          <button class="btn-primary" id="upload-submit" type="button" disabled>${state.busy ? "Loggingâ¦" : "Log entry"}</button>
         </div>
       </div>
     </div>`;
@@ -816,7 +825,7 @@ function renderEntryModal() {
             </button>`;
           }).join("")}
         </div>
-        ${totalReactions === 0 ? '<p class="entry-no-reactions">No reactions yet — be the first!</p>' : ""}
+        ${totalReactions === 0 ? '<p class="entry-no-reactions">No reactions yet â be the first!</p>' : ""}
 
         <div class="comments-section">
           ${comments.length > 0 ? `<div class="comments-list">
@@ -831,7 +840,7 @@ function renderEntryModal() {
               </div>`).join("")}
           </div>` : ""}
           <div class="comment-input-row">
-            <input type="text" class="comment-input" id="comment-input" placeholder="Add a comment…" maxlength="100"/>
+            <input type="text" class="comment-input" id="comment-input" placeholder="Add a commentâ¦" maxlength="100"/>
             <button type="button" class="comment-send" id="comment-send" disabled>Send</button>
           </div>
           <p class="comment-char-count"><span id="comment-char-count">0</span>/100</p>
@@ -850,7 +859,7 @@ function renderPinPromptModal() {
   const mode = state.pinModal.mode;
   const title = mode === "set" ? "Protect your board? (optional)" : "Enter your PIN";
   const sub = mode === "set"
-    ? "Set a 4-digit PIN so only you can upload or delete on your board. You can skip this — your board will stay open like everyone else's."
+    ? "Set a 4-digit PIN so only you can upload or delete on your board. You can skip this â your board will stay open like everyone else's."
     : "This board is PIN-protected. Enter the PIN to continue.";
   return `
     <div class="modal-backdrop" id="pinprompt-backdrop">
@@ -858,7 +867,7 @@ function renderPinPromptModal() {
         <p class="modal-eyebrow">${mode === "set" ? "Optional" : "Protected board"}</p>
         <h3 class="modal-title">${title}</h3>
         <p class="modal-sub">${sub}</p>
-        <input class="pin-input" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" id="pinprompt-input"/>
+        <input class="pin-input" type="tel" inputmode="numeric" maxlength="4" placeholder="â¢â¢â¢â¢" id="pinprompt-input"/>
         ${state.pinError ? `<p class="modal-error">${escapeHtml(state.pinError)}</p>` : ""}
         <div class="modal-actions">
           ${mode === "set" ? '<button class="btn-ghost" id="pinprompt-skip" type="button">Skip</button>' : '<button class="btn-ghost" id="pinprompt-cancel" type="button">Cancel</button>'}
@@ -876,7 +885,7 @@ function renderPinManageModal() {
         <p class="modal-eyebrow">Board protection</p>
         <h3 class="modal-title">${hasPin ? "Change or remove your PIN" : "Add a PIN"}</h3>
         <p class="modal-sub">${hasPin ? "Enter a new 4-digit PIN to replace the current one, or remove protection entirely." : "Set a 4-digit PIN so only you can upload or delete on your board."}</p>
-        <input class="pin-input" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" id="pinmanage-input"/>
+        <input class="pin-input" type="tel" inputmode="numeric" maxlength="4" placeholder="â¢â¢â¢â¢" id="pinmanage-input"/>
         ${state.pinError ? `<p class="modal-error">${escapeHtml(state.pinError)}</p>` : ""}
         <div class="modal-actions">
           <button class="btn-ghost" id="pinmanage-cancel" type="button">Cancel</button>
@@ -959,7 +968,7 @@ function wireUploadModal() {
       dropzone.innerHTML = `<img src="${preview}" class="dropzone-preview" alt="Preview"/>`;
       submitBtn.disabled = false;
     } catch {
-      errEl.textContent = "Could not process that image — try another.";
+      errEl.textContent = "Could not process that image â try another.";
       errEl.classList.remove("hidden");
     }
   };
@@ -1067,5 +1076,20 @@ function wirePinManageModal() {
 }
 
 // ===================== BOOT =====================
+debugLog("App script started, calling refreshAll()â¦");
 refreshAll();
 setInterval(() => { refreshAll(true); }, 60 * 1000);
+
+// Absolute failsafe: no matter what goes wrong inside refreshAll (a bug, an
+// unexpected hang, a promise that never resolves or rejects), never let the
+// loading screen spin forever with zero feedback. If we're still "loading"
+// after 15 seconds, force the error screen with real diagnostic info.
+setTimeout(() => {
+  if (state.loading) {
+    console.error("Boot failsafe triggered â refreshAll did not complete within 15s");
+    setState({
+      loading: false,
+      storageError: true,
+    });
+  }
+}, 15000);
