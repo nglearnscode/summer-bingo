@@ -1,4 +1,4 @@
-/ ===================== DATA =====================
+// ===================== DATA =====================
 const TEAM = [
   "Elias", "Marcus", "Demi", "Sam", "Ng'ang'a",
   "Aline", "Lucy", "Zahra", "Iris", "Aizha",
