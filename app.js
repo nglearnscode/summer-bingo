@@ -51,7 +51,7 @@ function slugify(str) {
   return String(str)
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/['â]/g, "")
+    .replace(/['']/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .toLowerCase();
@@ -129,7 +129,7 @@ function escapeHtml(str) {
 // ===================== DEBUG LOG =====================
 window.__fieldLogDebug = window.__fieldLogDebug || [];
 function debugLog(entry) {
-  const line = `${new Date().toLocaleTimeString()} â ${entry}`;
+  const line = `${new Date().toLocaleTimeString()} - ${entry}`;
   window.__fieldLogDebug = [...window.__fieldLogDebug, line].slice(-40);
   const el = document.getElementById("debug-panel-body");
   if (el) renderDebugPanel();
@@ -138,7 +138,7 @@ function debugLog(entry) {
 // ===================== FIREBASE STORAGE LAYER =====================
 // Firestore holds the board's structured data (cells, pin, timestamps).
 // Firebase Storage holds the actual photo files (referenced by URL in Firestore).
-// This avoids the 5MB-per-document ceiling we hit with Claude's storage â
+// This avoids the 5MB-per-document ceiling we hit with Claude's storage -
 // Firestore documents stay small (just text/URLs), photos live in dedicated
 // object storage designed for exactly this.
 
@@ -157,7 +157,7 @@ async function loadBoardData(name, attempt = 1) {
   } catch (e) {
     const isTransient = /unavailable|timeout|network|internal/i.test(e.message || "");
     if (isTransient && attempt < MAX_ATTEMPTS) {
-      debugLog(`loadBoardData(${name}) â ï¸ attempt ${attempt} failed (${e.message}), retryingâ¦`);
+      debugLog(`loadBoardData(${name}) â ï¸ attempt ${attempt} failed (${e.message}), retrying...`);
       await sleep(400 * attempt);
       return loadBoardData(name, attempt + 1);
     }
@@ -177,7 +177,7 @@ async function saveBoardData(name, data, attempt = 1) {
     const isTransient = /unavailable|timeout|network|internal|resource-exhausted/i.test(e.message || "");
     if (isTransient && attempt < MAX_ATTEMPTS) {
       const waitMs = /resource-exhausted/i.test(e.message || "") ? 1500 * attempt : 400 * attempt;
-      debugLog(`saveBoardData(${name}) â ï¸ attempt ${attempt} failed (${e.message}), retrying in ${waitMs}msâ¦`);
+      debugLog(`saveBoardData(${name}) â ï¸ attempt ${attempt} failed (${e.message}), retrying in ${waitMs}ms...`);
       await sleep(waitMs);
       return saveBoardData(name, data, attempt + 1);
     }
@@ -268,7 +268,7 @@ async function refreshAll(silent = false) {
     const freshBoards = Object.fromEntries(entries);
 
     // If a modal is open (upload in progress, entry view, PIN prompt), update the
-    // underlying data silently without a full re-render â a periodic background
+    // underlying data silently without a full re-render - a periodic background
     // refresh shouldn't interrupt someone mid-upload or mid-comment. The next
     // natural render (e.g. after they close the modal) will pick up fresh data.
     const hasOpenModal = state.modalIndex !== null || state.entryModal || state.pinModal || state.pinManageOpen;
@@ -347,8 +347,8 @@ async function handleSubmit(dataUrl) {
     const rawMessage = e.message || "";
     const codePrefix = e.code ? `[${e.code}] ` : "";
     const friendly = /resource-exhausted|rate/i.test(rawMessage)
-      ? "Things are a little busy right now â please wait about 30 seconds and try again."
-      : (codePrefix + (rawMessage || "Couldn't save this photo â try a smaller/different photo."));
+      ? "Things are a little busy right now - please wait about 30 seconds and try again."
+      : (codePrefix + (rawMessage || "Couldn't save this photo - try a smaller/different photo."));
     setState({ busy: false, uploadError: friendly });
   }
 }
@@ -368,7 +368,7 @@ function handleDeleteFromEntry() {
       setState({ entryModal: null });
     } catch (e) {
       console.error(e);
-      setState({ uploadError: e.message || "Couldn't delete this entry â try again." });
+      setState({ uploadError: e.message || "Couldn't delete this entry - try again." });
     }
   });
 }
@@ -457,7 +457,7 @@ async function handleUpdatePin(newPin) {
     setState({ unlockedBoards: { ...state.unlockedBoards, [state.currentUser]: true }, pinManageOpen: false, pinError: "" });
   } catch (e) {
     console.error(e);
-    setState({ pinError: e.message || "Couldn't update the PIN â try again." });
+    setState({ pinError: e.message || "Couldn't update the PIN - try again." });
   }
 }
 
@@ -471,7 +471,7 @@ async function handleRemovePin() {
     setState({ pinManageOpen: false, pinError: "" });
   } catch (e) {
     console.error(e);
-    setState({ pinError: e.message || "Couldn't remove the PIN â try again." });
+    setState({ pinError: e.message || "Couldn't remove the PIN - try again." });
   }
 }
 
@@ -488,7 +488,7 @@ function handlePinConfirm(value) {
     state.pinModal.onSuccess();
     setState({ pinModal: null, pinError: "" });
   } else {
-    setState({ pinError: "That PIN doesn't match â try again." });
+    setState({ pinError: "That PIN doesn't match - try again." });
   }
 }
 
@@ -513,7 +513,7 @@ const root = document.getElementById("root");
 
 function render() {
   if (state.loading) {
-    root.innerHTML = svgBg() + `<div class="loading-shell"><p class="loading-text">Unrolling the field logâ¦</p></div>`;
+    root.innerHTML = svgBg() + `<div class="loading-shell"><p class="loading-text">Unrolling the field log...</p></div>`;
     return;
   }
   if (state.storageError) {
@@ -528,7 +528,7 @@ function render() {
             <div class="debug-panel-inline" style="margin-top:16px;text-align:left">
               <div class="debug-panel-header"><span>Recent activity (for diagnosis)</span></div>
               <div class="debug-panel-body">${lastLogs.map((l) => `<div class="debug-line">${escapeHtml(l)}</div>`).join("")}</div>
-            </div>` : '<p class="entry-meta" style="margin-top:12px">No storage activity was logged before this failed â the connection itself may not be reaching Firebase at all.</p>'}
+            </div>` : '<p class="entry-meta" style="margin-top:12px">No storage activity was logged before this failed - the connection itself may not be reaching Firebase at all.</p>'}
         </div>
       </div>`;
     document.getElementById("retry-btn").onclick = () => { setState({ loading: true, storageError: false }); refreshAll(); };
@@ -612,7 +612,7 @@ function renderGate() {
       <div class="who-bar">
         <label for="identity-select" class="who-label">I am</label>
         <select id="identity-select" class="who-select">
-          <option value="">â choose your name â</option>
+          <option value="">- choose your name -</option>
           ${TEAM.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("")}
         </select>
       </div>
@@ -740,10 +740,10 @@ function renderBoardView() {
   }
 
   if (own && locked) {
-    html += `<p class="lock-note">ð Your board is locked â next entry unlocks in ${formatRemaining(lockRemaining())}. If you deleted a photo, the square stays empty until the lock lifts.</p>`;
+    html += `<p class="lock-note">ð Your board is locked - next entry unlocks in ${formatRemaining(lockRemaining())}. If you deleted a photo, the square stays empty until the lock lifts.</p>`;
   }
   if (!own) {
-    html += `<p class="hint-text" style="margin-top:0;margin-bottom:12px">You're viewing ${escapeHtml(state.viewingUser)}'s board â you can react, but only ${escapeHtml(state.viewingUser)} can edit it.</p>`;
+    html += `<p class="hint-text" style="margin-top:0;margin-bottom:12px">You're viewing ${escapeHtml(state.viewingUser)}'s board - you can react, but only ${escapeHtml(state.viewingUser)} can edit it.</p>`;
   }
 
   html += `<div class="grid">`;
@@ -793,7 +793,7 @@ function renderUploadModal() {
         ${state.uploadError ? `<p class="modal-error">${escapeHtml(state.uploadError)}</p>` : ""}
         <div class="modal-actions">
           <button class="btn-ghost" id="upload-cancel" type="button">Cancel</button>
-          <button class="btn-primary" id="upload-submit" type="button" disabled>${state.busy ? "Loggingâ¦" : "Log entry"}</button>
+          <button class="btn-primary" id="upload-submit" type="button" disabled>${state.busy ? "Logging..." : "Log entry"}</button>
         </div>
       </div>
     </div>`;
@@ -825,7 +825,7 @@ function renderEntryModal() {
             </button>`;
           }).join("")}
         </div>
-        ${totalReactions === 0 ? '<p class="entry-no-reactions">No reactions yet â be the first!</p>' : ""}
+        ${totalReactions === 0 ? '<p class="entry-no-reactions">No reactions yet - be the first!</p>' : ""}
 
         <div class="comments-section">
           ${comments.length > 0 ? `<div class="comments-list">
@@ -840,7 +840,7 @@ function renderEntryModal() {
               </div>`).join("")}
           </div>` : ""}
           <div class="comment-input-row">
-            <input type="text" class="comment-input" id="comment-input" placeholder="Add a commentâ¦" maxlength="100"/>
+            <input type="text" class="comment-input" id="comment-input" placeholder="Add a comment..." maxlength="100"/>
             <button type="button" class="comment-send" id="comment-send" disabled>Send</button>
           </div>
           <p class="comment-char-count"><span id="comment-char-count">0</span>/100</p>
@@ -859,7 +859,7 @@ function renderPinPromptModal() {
   const mode = state.pinModal.mode;
   const title = mode === "set" ? "Protect your board? (optional)" : "Enter your PIN";
   const sub = mode === "set"
-    ? "Set a 4-digit PIN so only you can upload or delete on your board. You can skip this â your board will stay open like everyone else's."
+    ? "Set a 4-digit PIN so only you can upload or delete on your board. You can skip this - your board will stay open like everyone else's."
     : "This board is PIN-protected. Enter the PIN to continue.";
   return `
     <div class="modal-backdrop" id="pinprompt-backdrop">
@@ -968,7 +968,7 @@ function wireUploadModal() {
       dropzone.innerHTML = `<img src="${preview}" class="dropzone-preview" alt="Preview"/>`;
       submitBtn.disabled = false;
     } catch {
-      errEl.textContent = "Could not process that image â try another.";
+      errEl.textContent = "Could not process that image - try another.";
       errEl.classList.remove("hidden");
     }
   };
@@ -1078,7 +1078,7 @@ function wirePinManageModal() {
 // ===================== BOOT =====================
 if (window.__firebaseInitError) {
   // The Firebase SDK itself failed to load/initialize (network issue, blocked
-  // CDN, bad config) â this happens before any of our own app logic can run,
+  // CDN, bad config) - this happens before any of our own app logic can run,
   // so show a clear message immediately instead of hanging on the spinner.
   root.innerHTML = svgBg() + `
     <div class="loading-shell">
@@ -1091,13 +1091,13 @@ if (window.__firebaseInitError) {
 } else if (!window.__firebase) {
   // Extremely unlikely, but covers the case where the SDK script hasn't
   // finished loading yet at all (e.g. very slow connection) rather than
-  // having errored â give it a moment before treating it as a real failure.
+  // having errored - give it a moment before treating it as a real failure.
   let waited = 0;
   const waitForFirebase = setInterval(() => {
     waited += 200;
     if (window.__firebase) {
       clearInterval(waitForFirebase);
-      debugLog("App script started, calling refreshAll()â¦");
+      debugLog("App script started, calling refreshAll()...");
       refreshAll();
       setInterval(() => { refreshAll(true); }, 60 * 1000);
     } else if (waited >= 8000) {
@@ -1112,7 +1112,7 @@ if (window.__firebaseInitError) {
     }
   }, 200);
 } else {
-  debugLog("App script started, calling refreshAll()â¦");
+  debugLog("App script started, calling refreshAll()...");
   refreshAll();
   setInterval(() => { refreshAll(true); }, 60 * 1000);
 }
@@ -1123,7 +1123,7 @@ if (window.__firebaseInitError) {
 // after 15 seconds, force the error screen with real diagnostic info.
 setTimeout(() => {
   if (state.loading) {
-    console.error("Boot failsafe triggered â refreshAll did not complete within 15s");
+    console.error("Boot failsafe triggered - refreshAll did not complete within 15s");
     setState({
       loading: false,
       storageError: true,
