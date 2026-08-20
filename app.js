@@ -33,7 +33,7 @@ const PROMPTS = [
 ];
 
 const FREE_INDEX = 12;
-const LOCK_HOURS = 72;
+const LOCK_HOURS = 24;
 const REACTIONS = ["🔥", "❤️", "😂", "🤩", "😭", "👏"];
 const GRID_SIZE = 5;
 
